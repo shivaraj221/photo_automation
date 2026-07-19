@@ -4,13 +4,13 @@ from typing import Dict, Tuple
 
 import cv2
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageOps
 
 from config import PASSPORT_CONFIG, SHEET_CONFIG, SUPPORTED_COPIES, passport_size_px, sheet_size_px
 
 GRID_PRESETS = {
-    4: {"cols": 2, "rows": 2, "rotate": False},
-    6: {"cols": 2, "rows": 3, "rotate": False},
+    4: {"cols": 2, "rows": 2, "rotate": True},
+    6: {"cols": 2, "rows": 3, "rotate": True},
     8: {"cols": 2, "rows": 4, "rotate": True},
 }
 
@@ -36,6 +36,10 @@ def generate_4x6_sheet(
     background = tuple(s_cfg.get("background_color", (255, 255, 255)))
 
     photo = _bgr_to_pil(passport_image_bgr).resize((photo_w, photo_h), Image.Resampling.LANCZOS)
+    
+    # Add a thin 2px border for easy cutting
+    photo = ImageOps.expand(photo, border=2, fill="black")
+    
     preset = GRID_PRESETS[copies]
     if preset["rotate"]:
         photo = photo.rotate(90, expand=True)
@@ -45,7 +49,10 @@ def generate_4x6_sheet(
     rows = int(preset["rows"])
 
     gap_x = (sheet_w - (cols * tile_w)) / (cols + 1)
-    gap_y = (sheet_h - (rows * tile_h)) / (rows + 1)
+    
+    # Force the vertical gap to pack tightly at the top (simulate max rows)
+    max_rows = sheet_h // tile_h
+    gap_y = (sheet_h - (max_rows * tile_h)) / (max_rows + 1)
     if gap_x < 0 or gap_y < 0:
         raise ValueError("Selected layout does not fit 4x6 at actual passport size.")
 

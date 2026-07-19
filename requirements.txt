@@ -3,9 +3,12 @@ uvicorn
 python-multipart
 mediapipe==0.10.35
 
+torch
+torchvision
 facenet-pytorch==2.5.3
 opencv-python-headless>=4.9.0
 numpy>=1.26.4
 Pillow==11.3.0
 pywin32>=306; platform_system == "Windows"
 rembg[cpu]>=2.0.50
+gradio>=4.0.0

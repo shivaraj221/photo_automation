@@ -34,33 +34,44 @@ class _MaskEngines:
             return None
 
         if cls._rembg_session is None:
+            # 1. Try u2net_human_seg (Best for portraits, preserves clothing)
             try:
-                cls._rembg_session = new_session("u2netp") # Tiny model for low RAM
+                cls._rembg_session = new_session("u2net_human_seg")
             except Exception:
+                # 2. Try u2net (High quality)
                 try:
                     cls._rembg_session = new_session("u2net")
                 except Exception:
-                    cls._rembg_session = None
-                    return None
+                    # 3. Fallback to u2netp (Tiny, can cause aggressive cropping)
+                    try:
+                        cls._rembg_session = new_session("u2netp")
+                    except Exception:
+                        cls._rembg_session = None
+                        return None
 
         try:
-            # Trick for black backgrounds: Temporarily brighten shadows (Gamma Correction)
-            # so the AI can distinguish dark hair/clothing from the dark background
-            img_f = image_bgr.astype(np.float32) / 255.0
-            brightened = np.clip(np.power(img_f, 0.45) * 255.0, 0, 255).astype(np.uint8)
-            
-            ok, buf = cv2.imencode(".png", brightened)
+            # Send the ORIGINAL image to rembg — no gamma tricks.
+            # Gamma correction was causing light-colored clothing (white shirts)
+            # to be mistakenly identified as background and removed.
+            ok, buf = cv2.imencode(".png", image_bgr)
             if not ok:
                 return None
             
-            # Using alpha_matting also drastically improves edges on hard contrasts
-            out = remove(
-                buf.tobytes(), 
-                session=cls._rembg_session, 
-                only_mask=True, 
-                post_process_mask=True,
-                alpha_matting=True
-            )
+            # First try with post_process_mask for cleaner edges
+            try:
+                out = remove(
+                    buf.tobytes(), 
+                    session=cls._rembg_session, 
+                    only_mask=True, 
+                    post_process_mask=True,
+                )
+            except TypeError:
+                # Fallback for older rembg versions
+                out = remove(
+                    buf.tobytes(), 
+                    session=cls._rembg_session, 
+                    only_mask=True, 
+                )
         except Exception:
             return None
 
@@ -103,9 +114,18 @@ def replace_with_clean_background(
     # Ensure mask is a clean alpha
     alpha = np.clip(raw_mask.astype(np.float32), 0.0, 1.0)
 
-    # Edge refinement (feather slightly, close small holes)
-    alpha = cv2.GaussianBlur(alpha, (7, 7), 0)
-    alpha = cv2.morphologyEx(alpha, cv2.MORPH_CLOSE, np.ones((3, 3), np.uint8))
+    # Edge refinement: close small holes, then smooth edges for natural look
+    kernel = np.ones((5, 5), np.uint8)
+    # Dilate slightly first to capture fine hair strands, then erode back
+    alpha_u8 = (alpha * 255).astype(np.uint8)
+    alpha_u8 = cv2.dilate(alpha_u8, kernel, iterations=1)
+    alpha_u8 = cv2.erode(alpha_u8, kernel, iterations=1)
+    # Close remaining small holes
+    alpha_u8 = cv2.morphologyEx(alpha_u8, cv2.MORPH_CLOSE, kernel)
+    alpha = alpha_u8.astype(np.float32) / 255.0
+    # Smooth feather for natural composite edge
+    alpha = cv2.GaussianBlur(alpha, (11, 11), sigmaX=2.5)
+    alpha = np.clip(alpha, 0.0, 1.0)
 
     # Alpha blend
     bg = np.full_like(image_bgr, background_bgr, dtype=np.uint8)

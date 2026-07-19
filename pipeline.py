@@ -120,12 +120,14 @@ def process_passport_photo(
         subject_alpha = None
 
         if replace_bg:
+            # Let the AI process the full aligned image (u2net_human_seg is smart enough)
             aligned, aligned_alpha = replace_with_clean_background(
                 aligned,
                 background_bgr=background_color,
                 prefer_u2net=prefer_u2net,
                 return_alpha=True,
             )
+
             # Make alpha 3-channel so we can crop it with the same function
             alpha_3 = np.repeat(aligned_alpha[:, :, None], 3, axis=2)
             alpha_cfg = p_cfg.copy()
