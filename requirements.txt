@@ -12,3 +12,4 @@ Pillow==11.3.0
 pywin32>=306; platform_system == "Windows"
 rembg[cpu]>=2.0.50
 gradio>=4.0.0
+spaces

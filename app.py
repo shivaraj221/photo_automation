@@ -3,12 +3,14 @@ from PIL import Image
 from pathlib import Path
 import os
 from config import PASSPORT_CONFIG, SUPPORTED_COPIES, FRAMING_PRESETS
+import spaces
 from pipeline import process_passport_photo
 
 # Ensure required directories exist
 os.makedirs("temp", exist_ok=True)
 os.makedirs("output", exist_ok=True)
 
+@spaces.GPU
 def run_pipeline(image, copies, bg_color_hex, framing_preset, force_ai, progress=gr.Progress()):
     if image is None:
         raise gr.Error("⚠️ Please upload a portrait photo first.")
