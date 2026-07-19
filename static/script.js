@@ -64,7 +64,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 body: formData
             });
 
-            const result = await response.json();
+            if (!response.ok) {
+                const text = await response.text();
+                throw new Error(`Server returned ${response.status} ${response.statusText}. Response body:\n${text}`);
+            }
+
+            const responseText = await response.text();
+            let result;
+            try {
+                result = JSON.parse(responseText);
+            } catch (parseError) {
+                throw new Error(`Invalid JSON response from server. Response body:\n${responseText}`);
+            }
 
             if (result.success) {
                 // Update images
