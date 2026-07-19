@@ -121,6 +121,11 @@ def trigger_browser_print(img_path):
 
 # --- PAGE CONTENT ---
 
+if 'status' not in st.session_state:
+    st.session_state['status'] = "Awaiting file upload."
+if 'progress' not in st.session_state:
+    st.session_state['progress'] = 0
+
 st.markdown('<div class="hero-container"><h1>STUDIO MAX</h1><p>ULTRA-WIDE AI ENGINE</p></div>', unsafe_allow_html=True)
 
 # 1. INPUT SECTION
@@ -146,31 +151,42 @@ process = st.button("INITIALIZE AI PIPELINE")
 st.markdown('</div>', unsafe_allow_html=True)
 
 # 2. STATUS
-if process and file:
+if process and file or 'res' in st.session_state:
     st.markdown('<div class="elite-card">', unsafe_allow_html=True)
     st.markdown('<div class="section-title">03. LIVE EXECUTION LOG</div>', unsafe_allow_html=True)
-    steps = ["Booting...", "Scanning...", "Restoring...", "Matting...", "Exporting..."]
-    progress_bar = st.progress(0)
+    progress_bar = st.progress(st.session_state['progress'])
     status_box = st.empty()
-    temp_p = Path("temp") / file.name
-    temp_p.parent.mkdir(exist_ok=True)
-    with open(temp_p, "wb") as f: f.write(file.getbuffer())
-    try:
-        from config import PASSPORT_CONFIG
-        p_cfg = PASSPORT_CONFIG.copy()
-        bg_rgb = tuple(int(bg_color_hex.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
-        p_cfg["background_color"] = (bg_rgb[2], bg_rgb[1], bg_rgb[0])
 
-        for i, step in enumerate(steps):
-            status_box.markdown(f'<div style="font-size: 1.5rem; color: #6366f1; margin-bottom: 2rem;">⚡ <b>STATE:</b> `{step}`</div>', unsafe_allow_html=True)
-            progress_bar.progress((i + 1) * 20)
-            time.sleep(0.4)
-            if i == 0:
-                results = process_passport_photo(input_path=str(temp_p), copies=copies, force_ai=quality, passport_config=p_cfg)
-        st.session_state['res'] = results
-        st.rerun()
-    except Exception as e:
-        st.error(f"ENGINE FAILURE: {e}")
+    if process and file:
+        steps = ["Booting...", "Scanning...", "Restoring...", "Matting...", "Exporting..."]
+        temp_p = Path("temp") / file.name
+        temp_p.parent.mkdir(exist_ok=True)
+        with open(temp_p, "wb") as f: f.write(file.getbuffer())
+        try:
+            from config import PASSPORT_CONFIG
+            p_cfg = PASSPORT_CONFIG.copy()
+            bg_rgb = tuple(int(bg_color_hex.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
+            p_cfg["background_color"] = (bg_rgb[2], bg_rgb[1], bg_rgb[0])
+
+            for i, step in enumerate(steps):
+                status_box.markdown(f'<div style="font-size: 1.5rem; color: #6366f1; margin-bottom: 2rem;">⚡ <b>STATE:</b> `{step}`</div>', unsafe_allow_html=True)
+                progress = (i + 1) * 20
+                progress_bar.progress(progress)
+                st.session_state['progress'] = progress
+                st.session_state['status'] = step
+                time.sleep(0.4)
+                if i == 0:
+                    results = process_passport_photo(input_path=str(temp_p), copies=copies, force_ai=quality, passport_config=p_cfg)
+            st.session_state['res'] = results
+            st.session_state['status'] = "Complete. Outputs are ready below."
+            st.session_state['progress'] = 100
+        except Exception as e:
+            st.error(f"ENGINE FAILURE: {e}")
+            st.session_state['status'] = f"ENGINE FAILURE: {e}"
+    else:
+        status_box.markdown(f'<div style="font-size: 1.5rem; color: #6366f1; margin-bottom: 2rem;">⚡ <b>STATE:</b> `{st.session_state["status"]}`</div>', unsafe_allow_html=True)
+        progress_bar.progress(st.session_state['progress'])
+
     st.markdown('</div>', unsafe_allow_html=True)
 
 # 3. RESULTS & DUAL PRINTING
