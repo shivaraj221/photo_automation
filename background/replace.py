@@ -35,7 +35,7 @@ class _MaskEngines:
 
         if cls._rembg_session is None:
             try:
-                cls._rembg_session = new_session("isnet-general")
+                cls._rembg_session = new_session("u2netp") # Tiny model for low RAM
             except Exception:
                 try:
                     cls._rembg_session = new_session("u2net")
