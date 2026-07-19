@@ -4,7 +4,7 @@ mediapipe==0.10.35
 facenet-pytorch==2.6.0
 opencv-python>=4.9.0
 numpy==1.26.4
-Pillow==12.3.0
+Pillow==11.3.0
 pywin32>=306; platform_system == "Windows"
 
 
