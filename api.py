@@ -29,6 +29,7 @@ app.mount("/output", StaticFiles(directory="output"), name="output")
 async def favicon():
     return HTMLResponse(status_code=204)
 
+@app.head("/")
 @app.get("/", response_class=HTMLResponse)
 async def serve_frontend():
     with open("static/index.html", "r", encoding="utf-8") as f:
