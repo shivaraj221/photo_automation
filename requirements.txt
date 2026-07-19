@@ -1,7 +1,7 @@
 streamlit==1.42.0
 mediapipe==0.10.35
 
-facenet-pytorch==2.6.0
+facenet-pytorch==2.5.3
 opencv-python>=4.9.0
 numpy==1.26.4
 Pillow==11.3.0
