@@ -82,7 +82,7 @@ def process_passport_photo(
     s_cfg = sheet_config or SHEET_CONFIG
 
     image = _load_image(input_path)
-    image = _resize_for_speed(image, max_dim=2600)
+    image = _resize_for_speed(image, max_dim=1200)
 
     try:
         facenet_detector = FaceNetMTCNNDetector(min_confidence=0.72)

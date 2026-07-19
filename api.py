@@ -25,6 +25,10 @@ os.makedirs("temp", exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/output", StaticFiles(directory="output"), name="output")
 
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    return HTMLResponse(status_code=204)
+
 @app.get("/", response_class=HTMLResponse)
 async def serve_frontend():
     with open("static/index.html", "r", encoding="utf-8") as f:
